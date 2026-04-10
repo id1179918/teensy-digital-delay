@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <iterator>
 
+#include "Deadband.h"
+#include "Smoothed.h"
+#include "ControlBank.h"
 
 #define fisrtUnusedPin 2
 #define lastUnusedPin 41
@@ -13,8 +16,8 @@
 #define inputVolumePotPin   A2 // 16
 #define outputVolumePotPin  A3 // 17
 #define delayFeedbackPotPin A5 // 19
-#define dryWetPotPin        A7 // 21
 #define delayTimePotPin     A6 // 20
+#define dryWetPotPin        A7 // 21
 #define filterDryWetPotPin  A8 // 22
 
 // INPUTS
@@ -67,11 +70,39 @@ AudioConnection          patchCord18(outputMixer, 0, preFilterMixer, 2);
 int usedPins[7] = {
   inputVolumePotPin,
   outputVolumePotPin,
-  dryWetPotPin,
   delayFeedbackPotPin,
   delayTimePotPin,
+  dryWetPotPin,
   filterDryWetPotPin
 };
+
+auto controls = ControlBank<2>({
+    makePot(inputVolumePotPin, [](float v) {
+        inputMixer.gain(2, v); // USB-Left input
+        inputMixer.gain(3, v); // USB-Right input
+    }),
+    makePot(outputVolumePotPin, [](float v) {
+        outputMixer.gain(0, v); // delayModule input
+        outputMixer.gain(1, v); // direct signal input to output
+    }),
+    //makePot(A4, [](float v) {
+    //    // dry/wet: v=0 → dry only, v=1 → wet only
+    //    preFilterMixer.gain(0, 1.f - v);
+    //    preFilterMixer.gain(1, v);
+    //}),
+    //makePot(delayFeedbackPotPin, [](float v) {
+    //    preFilterMixer.gain(2, v * 0.95f);
+    //}),
+    //makePot(A6, [](float v) {
+    //    // delay time: 20–2413 ms
+    //    float ms = 20.f + v * 2393.f;
+    //    delayModule.delay(0, ms);
+    //}, 0.05f),            // slower EMA for delay — reduces zipper noise
+    //makePot(A8, [](float v) {
+    //    postFilterMixer.gain(0, 1.f - v);
+    //    postFilterMixer.gain(1, v);
+    //}),
+});
 
 void setup() {
   Serial.begin(140000);
@@ -83,20 +114,20 @@ void setup() {
     }
   }
 
-  inputMixer.gain(0, 0.0); // PlayBackMem input
-  inputMixer.gain(1, 0.0); // ADC input
-  inputMixer.gain(2, 0.0); // USB-Left input
-  inputMixer.gain(3, 0.0); // USB-Right
-
-  outputMixer.gain(0, 0.0); // delayModule input
-  outputMixer.gain(1, 0.0); // direct signal input to output
-
-  preFilterMixer.gain(0, 0.0); // direct signal input
-  preFilterMixer.gain(1, 0.0); // input from Hold
-  preFilterMixer.gain(2, 0.0); // return signal from outputMixer
-
-  postFilterMixer.gain(0, 0.0); // direct signal input
-  postFilterMixer.gain(1, 0.0); // filtered signal input
+  // inputMixer.gain(0, 0.0); // PlayBackMem input
+  // inputMixer.gain(1, 0.0); // ADC input
+  // inputMixer.gain(2, 0.0); // USB-Left input
+  // inputMixer.gain(3, 0.0); // USB-Right
+  // 
+  // outputMixer.gain(0, 0.0); // delayModule input
+  // outputMixer.gain(1, 0.0); // direct signal input to output
+  // 
+  // preFilterMixer.gain(0, 0.0); // direct signal input
+  // preFilterMixer.gain(1, 0.0); // input from Hold
+  // preFilterMixer.gain(2, 0.0); // return signal from outputMixer
+  // 
+  // postFilterMixer.gain(0, 0.0); // direct signal input
+  // postFilterMixer.gain(1, 0.0); // filtered signal input
 
   delayModule.delay(0, 20.0); // 20 mS delay
   delayModule.disable(1);
@@ -112,22 +143,15 @@ void setup() {
 }
 
 void loop() {
-  float inputLevel = analogRead(inputVolumePotPin);
-  float outputLevel = analogRead(outputVolumePotPin);
-  float dryWetLevel = analogRead(dryWetPotPin);
-  float delayFeedbackLevel = analogRead(delayFeedbackPotPin);
-  float delayTime = map(analogRead(delayTimePotPin), 0, 1023, 20, 2413);
-  float filterLevel = analogRead(filterDryWetPotPin);
+  //float delayTime = map(analogRead(delayTimePotPin), 0, 1023, 20, 2413);
 
-  Serial.printf("inputLevel: %f/1023\n", inputLevel);
-  Serial.printf("outputLevel: %f/1023\n", outputLevel);
-  Serial.printf("dryWetLevel: %f/1023\n", dryWetLevel);
-  Serial.printf("delayFeedbackLevel: %f/1023\n", delayFeedbackLevel);
-  Serial.printf("delayTime: %f mS\n", delayTime);
-  Serial.printf("filterLevel: %f/1023\n\n", filterLevel);
+  controls.update();
+
+  Serial.printf("inputLevel: %f / 1\n", controls[0].getLastEmittedValue());
+  Serial.printf("outputLevel: %f / 1\n\n", controls[1].getLastEmittedValue());
 
 
-  delayModule.delay(0, delayTime);
+  //delayModule.delay(0, delayTime);
 
 
   delay(1000);
