@@ -67,7 +67,7 @@ AudioConnection          patchCord16(outputMixer, 0, usb2, 1);
 //AudioConnection          patchCord17(outputMixer, dac1);
 AudioConnection          patchCord18(outputMixer, 0, preFilterMixer, 2);
 
-int usedPins[7] = {
+int usedPins[6] = {
   inputVolumePotPin,
   outputVolumePotPin,
   delayFeedbackPotPin,
@@ -76,7 +76,7 @@ int usedPins[7] = {
   filterDryWetPotPin
 };
 
-auto controls = ControlBank<2>({
+auto controls = ControlBank<6>({
     makePot(inputVolumePotPin, [](float v) {
         inputMixer.gain(2, v); // USB-Left input
         inputMixer.gain(3, v); // USB-Right input
@@ -85,23 +85,21 @@ auto controls = ControlBank<2>({
         outputMixer.gain(0, v); // delayModule input
         outputMixer.gain(1, v); // direct signal input to output
     }),
-    //makePot(A4, [](float v) {
-    //    // dry/wet: v=0 → dry only, v=1 → wet only
-    //    preFilterMixer.gain(0, 1.f - v);
-    //    preFilterMixer.gain(1, v);
-    //}),
-    //makePot(delayFeedbackPotPin, [](float v) {
-    //    preFilterMixer.gain(2, v * 0.95f);
-    //}),
-    //makePot(A6, [](float v) {
-    //    // delay time: 20–2413 ms
-    //    float ms = 20.f + v * 2393.f;
-    //    delayModule.delay(0, ms);
-    //}, 0.05f),            // slower EMA for delay — reduces zipper noise
-    //makePot(A8, [](float v) {
-    //    postFilterMixer.gain(0, 1.f - v);
-    //    postFilterMixer.gain(1, v);
-    //}),
+    makePot(delayFeedbackPotPin, [](float v) {
+        preFilterMixer.gain(2, v * 0.95f);
+    }),
+    makePot(delayTimePotPin, [](float v) {
+        float ms = 20.f + v * 2393.f;
+        delayModule.delay(0, ms);
+    }, 0.05f),
+    makePot(dryWetPotPin, [](float v) {
+        outputMixer.gain(0, v);
+        outputMixer.gain(1, 1.f - v);
+    }),
+    makePot(filterDryWetPotPin, [](float v) {
+        postFilterMixer.gain(0, v);
+        postFilterMixer.gain(1, 1.f - v);
+    }),
 });
 
 void setup() {
@@ -129,7 +127,6 @@ void setup() {
   // postFilterMixer.gain(0, 0.0); // direct signal input
   // postFilterMixer.gain(1, 0.0); // filtered signal input
 
-  delayModule.delay(0, 20.0); // 20 mS delay
   delayModule.disable(1);
   delayModule.disable(2);
   delayModule.disable(3);
@@ -148,7 +145,11 @@ void loop() {
   controls.update();
 
   Serial.printf("inputLevel: %f / 1\n", controls[0].getLastEmittedValue());
-  Serial.printf("outputLevel: %f / 1\n\n", controls[1].getLastEmittedValue());
+  Serial.printf("outputLevel: %f / 1\n", controls[1].getLastEmittedValue());
+  Serial.printf("delayFeedbackLevel: %f / 1\n", controls[2].getLastEmittedValue());
+  Serial.printf("delay Time: %f / 1\n", controls[3].getLastEmittedValue());
+  Serial.printf("dryWetLevel: %f / 1\n", controls[4].getLastEmittedValue());
+  Serial.printf("filterDryWetLevel: %f / 1\n\n", controls[5].getLastEmittedValue());
 
 
   //delayModule.delay(0, delayTime);
