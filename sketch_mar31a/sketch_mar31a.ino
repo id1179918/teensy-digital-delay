@@ -86,7 +86,7 @@ auto controls = ControlBank<6>({
         outputMixer.gain(1, v); // direct signal input to output
     }),
     makePot(delayFeedbackPotPin, [](float v) {
-        preFilterMixer.gain(2, v * 0.95f);
+        preFilterMixer.gain(2, v * 0.95f); 
     }),
     makePot(delayTimePotPin, [](float v) {
         float ms = 20.f + v * 2393.f;
@@ -97,13 +97,13 @@ auto controls = ControlBank<6>({
         outputMixer.gain(1, 1.f - v);
     }),
     makePot(filterDryWetPotPin, [](float v) {
-        postFilterMixer.gain(0, v);
-        postFilterMixer.gain(1, 1.f - v);
+        postFilterMixer.gain(0, v); // USB-Left output
+        postFilterMixer.gain(1, 1.f - v); // USB-Right output
     }),
 });
 
 void setup() {
-  Serial.begin(140000);
+  //Serial.begin(140000);
   AudioMemory(400);
 
   for(int i = fisrtUnusedPin; i <= lastUnusedPin; i++) {
@@ -112,20 +112,25 @@ void setup() {
     }
   }
 
-  // inputMixer.gain(0, 0.0); // PlayBackMem input
-  // inputMixer.gain(1, 0.0); // ADC input
+  inputMixer.gain(0, 0.0); // PlayBackMem input
+  inputMixer.gain(1, 0.0); // ADC input
   // inputMixer.gain(2, 0.0); // USB-Left input
   // inputMixer.gain(3, 0.0); // USB-Right
   // 
   // outputMixer.gain(0, 0.0); // delayModule input
   // outputMixer.gain(1, 0.0); // direct signal input to output
+  outputMixer.gain(2, 0.0);
+  outputMixer.gain(3, 0.0);
   // 
   // preFilterMixer.gain(0, 0.0); // direct signal input
-  // preFilterMixer.gain(1, 0.0); // input from Hold
+  preFilterMixer.gain(1, 0.0);
   // preFilterMixer.gain(2, 0.0); // return signal from outputMixer
+  preFilterMixer.gain(3, 0.0);
   // 
   // postFilterMixer.gain(0, 0.0); // direct signal input
   // postFilterMixer.gain(1, 0.0); // filtered signal input
+  postFilterMixer.gain(2, 0.0);
+  postFilterMixer.gain(3, 0.0);
 
   delayModule.disable(1);
   delayModule.disable(2);
@@ -140,20 +145,12 @@ void setup() {
 }
 
 void loop() {
-  //float delayTime = map(analogRead(delayTimePotPin), 0, 1023, 20, 2413);
-
   controls.update();
 
-  Serial.printf("inputLevel: %f / 1\n", controls[0].getLastEmittedValue());
-  Serial.printf("outputLevel: %f / 1\n", controls[1].getLastEmittedValue());
-  Serial.printf("delayFeedbackLevel: %f / 1\n", controls[2].getLastEmittedValue());
-  Serial.printf("delay Time: %f / 1\n", controls[3].getLastEmittedValue());
-  Serial.printf("dryWetLevel: %f / 1\n", controls[4].getLastEmittedValue());
-  Serial.printf("filterDryWetLevel: %f / 1\n\n", controls[5].getLastEmittedValue());
-
-
-  //delayModule.delay(0, delayTime);
-
-
-  delay(1000);
+  //Serial.printf("inputLevel: %f / 1\n", controls[0].getLastEmittedValue());
+  //Serial.printf("outputLevel: %f / 1\n", controls[1].getLastEmittedValue());
+  //Serial.printf("delayFeedbackLevel: %f / 1\n", controls[2].getLastEmittedValue());
+  //Serial.printf("delay Time: %f / 1\n", controls[3].getLastEmittedValue());
+  //Serial.printf("dryWetLevel: %f / 1\n", controls[4].getLastEmittedValue());
+  //Serial.printf("filterDryWetLevel: %f / 1\n\n", controls[5].getLastEmittedValue());
 }
